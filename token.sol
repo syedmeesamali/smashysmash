@@ -1,43 +1,29 @@
 pragma solidity ^0.4.18;
 
 // ----------------------------------------------------------------------------
-
 // Safe maths
-
 // ----------------------------------------------------------------------------
 
 library SafeMath {
 
     function add(uint a, uint b) internal pure returns (uint c) {
-
         c = a + b;
-
         require(c >= a);
-
     }
 
     function sub(uint a, uint b) internal pure returns (uint c) {
-
         require(b <= a);
-
         c = a - b;
-
     }
 
     function mul(uint a, uint b) internal pure returns (uint c) {
-
         c = a * b;
-
         require(a == 0 || c / a == b);
-
     }
 
     function div(uint a, uint b) internal pure returns (uint c) {
-
         require(b > 0);
-
         c = a / b;
-
     }
 
 }
@@ -66,121 +52,92 @@ contract ERC20Interface {
 
     function transferFrom(address from, address to, uint tokens) public returns (bool success);
 
-
     event Transfer(address indexed from, address indexed to, uint tokens);
 
     event Approval(address indexed tokenOwner, address indexed spender, uint tokens);
 
 }
 
-
-
 // ----------------------------------------------------------------------------
-
 // Owned contract
-
 // ----------------------------------------------------------------------------
 
 contract Owned {
-
     address public owner;
-
     constructor() public {
-
         owner = msg.sender;
 
     }
 
-
     modifier onlyOwner {
-
         require(msg.sender == owner);
-
         _;
-
     }
 
 }
 
-
-
 // ----------------------------------------------------------------------------
-
 // ERC20 Token, with the addition of symbol, name and decimals and an
-
 // initial fixed supply
-
 // ----------------------------------------------------------------------------
 
 contract SmashySmash is ERC20Interface, Owned {
 
     using SafeMath for uint;
-
-
     string public symbol;
-
     string public  name;
-
     uint8 public decimals;
-
     uint public _totalSupply;
-    
     mapping(address => uint) balances;
-
     mapping(address => mapping(address => uint)) allowed;
 
+    // New variable to freeze the contract
+    bool public frozen=false;
 
 
     // ------------------------------------------------------------------------
-
     // Constructor
-
     // ------------------------------------------------------------------------
 
     constructor() public {
-
-        symbol = "SMASHY";
-
-        name = "SmashySmash";
-
+        symbol = "SMASHY_Ali";
+        name = "SmashySmash_Ali";
         decimals = 18;
-
         _totalSupply = 99000000 * 10**uint(decimals);
-
         balances[owner] = _totalSupply;
-
         emit Transfer(address(0), owner, _totalSupply);
 
     }
 
 
+    // Function to freeze the contract
+    function freeze() onlyOwner public {
+        frozen=true;
+    }
+
+    // Function to unfreeze the contract
+    function unfreeze() onlyOwner public {
+        frozen=false;
+    }
+
+
     // ------------------------------------------------------------------------
-
     // Total supply
-
     // ------------------------------------------------------------------------
 
     function totalSupply() public constant returns (uint) {
-
         return _totalSupply  - balances[address(0)];
-
     }
 
 
-
     // ------------------------------------------------------------------------
-
     // Get the token balance for account `tokenOwner`
-
     // ------------------------------------------------------------------------
 
     function balanceOf(address tokenOwner) public constant returns (uint balance) {
-
         return balances[tokenOwner];
 
     }
-
-
 
     // ------------------------------------------------------------------------
 
@@ -193,75 +150,50 @@ contract SmashySmash is ERC20Interface, Owned {
     // ------------------------------------------------------------------------
 
     function transfer(address to, uint tokens) public returns (bool success) {
-
+        require(!frozen);
         balances[msg.sender] = balances[msg.sender].sub(tokens);
-
         balances[to] = balances[to].add(tokens);
-
         emit Transfer(msg.sender, to, tokens);
-
         return true;
 
     }
 
-
-
     // ------------------------------------------------------------------------
-
     // Token owner can approve for `spender` to transferFrom(...) `tokens`
-
     // from the token owner's account
-
     //
 
     // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-20-token-standard.md
-
     // recommends that there are no checks for the approval double-spend attack
-
     // as this should be implemented in user interfaces 
 
     // ------------------------------------------------------------------------
 
     function approve(address spender, uint tokens) public returns (bool success) {
-
         allowed[msg.sender][spender] = tokens;
-
         emit Approval(msg.sender, spender, tokens);
-
         return true;
-
     }
 
 
-
     // ------------------------------------------------------------------------
-
     // Transfer `tokens` from the `from` account to the `to` account
-
     // 
 
     // The calling account must already have sufficient tokens approve(...)-d
-
     // for spending from the `from` account and
-
     // - From account must have sufficient balance to transfer
-
     // - Spender must have sufficient allowance to transfer
-
     // - 0 value transfers are allowed
 
     // ------------------------------------------------------------------------
 
     function transferFrom(address from, address to, uint tokens) public returns (bool success) {
-
+        require(!frozen);
         balances[from] = balances[from].sub(tokens);
-
         allowed[from][msg.sender] = allowed[from][msg.sender].sub(tokens);
-
         balances[to] = balances[to].add(tokens);
-
         emit Transfer(from, to, tokens);
-
         return true;
 
     }
@@ -277,7 +209,6 @@ contract SmashySmash is ERC20Interface, Owned {
     // ------------------------------------------------------------------------
 
     function allowance(address tokenOwner, address spender) public constant returns (uint remaining) {
-
         return allowed[tokenOwner][spender];
 
     }
@@ -286,7 +217,6 @@ contract SmashySmash is ERC20Interface, Owned {
     // Owner can withdraw ether if token received.
     // ------------------------------------------------------------------------
     function withdraw() public onlyOwner returns (bool result) {
-        
         return owner.send(this.balance);
         
     }
@@ -298,9 +228,7 @@ contract SmashySmash is ERC20Interface, Owned {
     // ------------------------------------------------------------------------
 
     function transferAnyERC20Token(address tokenAddress, uint tokens) public onlyOwner returns (bool success) {
-
         return ERC20Interface(tokenAddress).transfer(owner, tokens);
-
     }
 
 }
